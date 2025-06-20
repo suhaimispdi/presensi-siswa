@@ -3,49 +3,73 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Presensi Santri</title>
-  <meta name="google-signin-client_id" content="72482443267-hkabf7o92quv5ar31ih12f2u7vsh4k73.apps.googleusercontent.com" />
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css" />
   <script src="https://accounts.google.com/gsi/client" async defer></script>
+  <script>
+    let userEmail = '';
+
+    function handleCredentialResponse(response) {
+      const decoded = parseJwt(response.credential);
+      userEmail = decoded.email;
+      document.getElementById("email").innerText = `Email: ${userEmail}`;
+      getData(userEmail);
+    }
+
+    function parseJwt(token) {
+      const base64Url = token.split('.')[1];
+      const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+      const jsonPayload = decodeURIComponent(atob(base64).split('').map(c =>
+        '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2)
+      ).join(''));
+      return JSON.parse(jsonPayload);
+    }
+
+    function getData(email) {
+      const url = "https://script.google.com/macros/s/AKfycbxU55R6w9LtV_HlsKzndtfXiebsOAQjuDp4v53Wuuq1d7yKrmujh40TC9aaxQcz7MAU/exec?email=" + encodeURIComponent(email);
+      fetch(url)
+        .then(response => response.json())
+        .then(data => {
+          let html = `<h3 class="text-xl font-semibold mb-4">Data Santri:</h3>`;
+          if (data.length === 0) {
+            html += `<p class="italic text-gray-600">Tidak ditemukan data untuk email ini.</p>`;
+          } else {
+            data.forEach(row => {
+              html += `<ul class="mb-4 border border-gray-300 rounded-lg p-4 bg-white shadow-sm">`;
+              for (let key in row) {
+                html += `<li class="mb-1"><span class="font-semibold text-gray-700">${key}:</span> <span class="text-gray-900">${row[key]}</span></li>`;
+              }
+              html += `</ul>`;
+            });
+          }
+          document.getElementById("data").innerHTML = html;
+        })
+        .catch(error => {
+          console.error("Error:", error);
+          document.getElementById("data").innerHTML = `<p class="text-red-600 font-semibold">Gagal mengambil data.</p>`;
+        });
+    }
+  </script>
 </head>
-<body class="bg-gray-50 min-h-screen flex flex-col justify-center items-center px-4">
-  <div class="w-full max-w-md bg-white rounded-lg shadow-md p-8">
-    <h2 class="text-2xl font-semibold text-center mb-6 text-gray-800">Login Presensi Santri</h2>
+<body class="min-h-screen bg-gradient-to-b from-blue-50 to-white flex flex-col items-center p-4 sm:p-8">
+  <div class="w-full max-w-md bg-white rounded-xl shadow-md p-6 sm:p-8">
+    <h2 class="text-2xl font-bold text-center text-blue-700 mb-6">Login Presensi Santri</h2>
     <div id="g_id_onload"
          data-client_id="72482443267-hkabf7o92quv5ar31ih12f2u7vsh4k73.apps.googleusercontent.com"
          data-callback="handleCredentialResponse"
          data-auto_prompt="false">
     </div>
-
     <div class="g_id_signin flex justify-center"
          data-type="standard"
          data-size="large"
          data-theme="outline"
          data-text="sign_in_with"
-         data-shape="rectangular"
+         data-shape="pill"
          data-logo_alignment="left">
     </div>
 
-    <p id="email" class="mt-6 text-center text-gray-700 text-lg font-medium break-words"></p>
+    <div id="email" class="mt-8 text-center text-gray-800 font-medium break-words"></div>
+    <div id="data" class="mt-6"></div>
   </div>
-
-  <script>
-    function parseJwt(token) {
-      const base64Url = token.split('.')[1];
-      const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-      const jsonPayload = decodeURIComponent(atob(base64).split('').map(c => {
-        return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
-      }).join(''));
-
-      return JSON.parse(jsonPayload);
-    }
-
-    function handleCredentialResponse(response) {
-      const data = parseJwt(response.credential);
-      document.getElementById("email").innerText = "Email Anda: " + data.email;
-
-      // TODO: Di sini nanti kita hubungkan ke Google Spreadsheet
-    }
-  </script>
 </body>
 </html>
